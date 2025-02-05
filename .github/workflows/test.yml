@@ -1,33 +1,18 @@
-# This is a basic workflow to help you get started with Actions
-
 name: CI test
 
-# Controls when the action will run. 
 on:
-
-  # Triggers the workflow on pull request events but only for the main & dev branch
   pull_request:
-    branches: [ '**'  ]
-  
-  # Triggers the workflow on push events
+    branches: [ '**' ]
   push:
-    branches: [ '**'  ]
-
-  # Allows you to run this workflow Actions manually
+    branches: [ '**' ]
   workflow_dispatch:
-
-   # Triggers the action 2am every day
   schedule:
     - cron: "0 2 * * *"
 
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-
   ACT-sail-spike:
     name: ACT-sail-spike (RV${{ matrix.xlen }})
     runs-on: ubuntu-22.04
-    # Set a 60-minute time limit for this job
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -35,7 +20,6 @@ jobs:
         xlen: [32, 64]
 
     steps:
-
       - name: Checkout source
         uses: actions/checkout@v4
 
@@ -47,8 +31,8 @@ jobs:
           sudo apt-get install -y autoconf automake autotools-dev curl python3 python3-pip libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev ninja-build git cmake libglib2.0-dev libslirp-dev pkg-config
           sudo apt-get install -y device-tree-compiler libboost-regex-dev libboost-system-dev
           pip3 install git+https://github.com/riscv/riscof.git
-      
-      - name: Build RISCV-GNU Toolchain (${{ matrix.xlen }} bit)
+
+      - name: Build RISCV-GNU Toolchain
         run: |
           wget -c https://github.com/riscv-collab/riscv-gnu-toolchain/releases/download/2024.09.03/riscv${{ matrix.xlen }}-elf-ubuntu-20.04-gcc-nightly-2024.09.03-nightly.tar.gz
           tar -xzf riscv${{ matrix.xlen }}-elf-ubuntu-20.04-gcc-nightly-2024.09.03-nightly.tar.gz
@@ -67,8 +51,8 @@ jobs:
 
       - name: Get Latest Spike Commit
         run: |
-              SPIKE_HASH=$(git ls-remote https://github.com/riscv/riscv-isa-sim.git HEAD | awk '{ print $1}')
-              echo "SPIKE_HASH=$SPIKE_HASH" >> "$GITHUB_ENV"
+          SPIKE_HASH=$(git ls-remote https://github.com/riscv/riscv-isa-sim.git HEAD | awk '{ print $1}')
+          echo "SPIKE_HASH=$SPIKE_HASH" >> "$GITHUB_ENV"
 
       - name: Restore cached Spike
         id: cache-spike-restore
@@ -90,7 +74,6 @@ jobs:
 
       - name: Save cached Spike
         if: steps.cache-spike-restore.outputs.cache-hit != 'true'
-        id: cache-spike-save
         uses: actions/cache/save@v4
         with:
           path: ${{ github.workspace }}/spike
@@ -98,8 +81,8 @@ jobs:
 
       - name: Get Latest Sail Commit
         run: |
-              SAIL_HASH=$(git ls-remote https://github.com/riscv/sail-riscv.git HEAD | awk '{ print $1}')
-              echo "SAIL_HASH=$SAIL_HASH" >> "$GITHUB_ENV"
+          SAIL_HASH=$(git ls-remote https://github.com/riscv/sail-riscv.git HEAD | awk '{ print $1}')
+          echo "SAIL_HASH=$SAIL_HASH" >> "$GITHUB_ENV"
 
       - name: Restore cached Sail
         id: cache-sail-restore
@@ -109,27 +92,24 @@ jobs:
           key: sail-${{ env.SAIL_HASH }}-RV${{ matrix.xlen }}
 
       - name: Install Sail
-  if: steps.cache-sail-restore.outputs.cache-hit != 'true'
-  run: |
-    sudo mkdir -p /usr/local
-    curl --location https://github.com/rems-project/sail/releases/download/0.18-linux-binary/sail.tar.gz | sudo tar xvz --directory=/usr/local --strip-components=1
-    git clone https://github.com/riscv/sail-riscv.git
-    cd sail-riscv
-    # Debug information
-    echo "Current directory:"
-    pwd
-    echo "Directory contents:"
-    ls -la
-    echo "Looking for Makefiles:"
-    find . -name "Makefile"
-    # Original build command
-    ARCH=RV${{ matrix.xlen }} make
-    mkdir -p $GITHUB_WORKSPACE/sail
-    mv c_emulator/riscv_sim_RV${{ matrix.xlen }} $GITHUB_WORKSPACE/sail/riscv_sim_RV${{ matrix.xlen }}
+        if: steps.cache-sail-restore.outputs.cache-hit != 'true'
+        run: |
+          sudo mkdir -p /usr/local
+          curl --location https://github.com/rems-project/sail/releases/download/0.18-linux-binary/sail.tar.gz | sudo tar xvz --directory=/usr/local --strip-components=1
+          git clone https://github.com/riscv/sail-riscv.git
+          cd sail-riscv
+          echo "Current directory:"
+          pwd
+          echo "Directory contents:"
+          ls -la
+          echo "Looking for Makefiles:"
+          find . -name "Makefile"
+          ARCH=RV${{ matrix.xlen }} make
+          mkdir -p $GITHUB_WORKSPACE/sail
+          mv c_emulator/riscv_sim_RV${{ matrix.xlen }} $GITHUB_WORKSPACE/sail/riscv_sim_RV${{ matrix.xlen }}
 
       - name: Save cached Sail
         if: steps.cache-sail-restore.outputs.cache-hit != 'true'
-        id: cache-sail-save
         uses: actions/cache/save@v4
         with:
           path: ${{ github.workspace }}/sail
@@ -137,15 +117,14 @@ jobs:
 
       - name: Set PATH
         run: |
-              echo $GITHUB_WORKSPACE/spike/bin >> $GITHUB_PATH
-              echo $GITHUB_WORKSPACE/sail >> $GITHUB_PATH
-      
-      - name: Config and run riscof for RV${{ matrix.xlen }}
+          echo $GITHUB_WORKSPACE/spike/bin >> $GITHUB_PATH
+          echo $GITHUB_WORKSPACE/sail >> $GITHUB_PATH
+
+      - name: Config and run riscof
         run: |
           cd riscof-plugins/rv${{ matrix.xlen }}
           riscof run --config config.ini --suite ../../riscv-test-suite/rv${{ matrix.xlen }}i_m/ --env ../../riscv-test-suite/env
 
-      #Check the existance of the riscof work folder, and add the PATH to environment variable
       - name: Check size and determine upload path
         if: always()
         id: check_size
@@ -173,8 +152,7 @@ jobs:
             echo "upload_path=" >> $GITHUB_ENV
           fi
 
-      # Upload the appropriate artifact (folder or report) and skip in case not exists
-      - name: Upload riscof artifact for rv${{ matrix.xlen }}
+      - name: Upload riscof artifact
         if: always() && env.upload_path != ''
         uses: actions/upload-artifact@v4
         with:

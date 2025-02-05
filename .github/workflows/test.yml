@@ -98,13 +98,10 @@ jobs:
           curl --location https://github.com/rems-project/sail/releases/download/0.18-linux-binary/sail.tar.gz | sudo tar xvz --directory=/usr/local --strip-components=1
           git clone https://github.com/riscv/sail-riscv.git
           cd sail-riscv
-          echo "Current directory:"
-          pwd
-          echo "Directory contents:"
-          ls -la
-          echo "Looking for Makefiles:"
-          find . -name "Makefile"
-          ARCH=RV${{ matrix.xlen }} make
+          mkdir build
+          cd build
+          cmake .. -DARCH=RV${{ matrix.xlen }}
+          make -j$(nproc)        
           mkdir -p $GITHUB_WORKSPACE/sail
           mv c_emulator/riscv_sim_RV${{ matrix.xlen }} $GITHUB_WORKSPACE/sail/riscv_sim_RV${{ matrix.xlen }}
 

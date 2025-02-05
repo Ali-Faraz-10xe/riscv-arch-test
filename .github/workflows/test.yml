@@ -109,15 +109,23 @@ jobs:
           key: sail-${{ env.SAIL_HASH }}-RV${{ matrix.xlen }}
 
       - name: Install Sail
-        if: steps.cache-sail-restore.outputs.cache-hit != 'true'
-        run: |
-          sudo mkdir -p /usr/local
-          curl --location https://github.com/rems-project/sail/releases/download/0.18-linux-binary/sail.tar.gz | sudo tar xvz --directory=/usr/local --strip-components=1
-          git clone https://github.com/riscv/sail-riscv.git
-          cd sail-riscv
-          ARCH=RV${{ matrix.xlen }} make
-          mkdir -p $GITHUB_WORKSPACE/sail
-          mv c_emulator/riscv_sim_RV${{ matrix.xlen }} $GITHUB_WORKSPACE/sail/riscv_sim_RV${{ matrix.xlen }}
+  if: steps.cache-sail-restore.outputs.cache-hit != 'true'
+  run: |
+    sudo mkdir -p /usr/local
+    curl --location https://github.com/rems-project/sail/releases/download/0.18-linux-binary/sail.tar.gz | sudo tar xvz --directory=/usr/local --strip-components=1
+    git clone https://github.com/riscv/sail-riscv.git
+    cd sail-riscv
+    # Debug information
+    echo "Current directory:"
+    pwd
+    echo "Directory contents:"
+    ls -la
+    echo "Looking for Makefiles:"
+    find . -name "Makefile"
+    # Original build command
+    ARCH=RV${{ matrix.xlen }} make
+    mkdir -p $GITHUB_WORKSPACE/sail
+    mv c_emulator/riscv_sim_RV${{ matrix.xlen }} $GITHUB_WORKSPACE/sail/riscv_sim_RV${{ matrix.xlen }}
 
       - name: Save cached Sail
         if: steps.cache-sail-restore.outputs.cache-hit != 'true'

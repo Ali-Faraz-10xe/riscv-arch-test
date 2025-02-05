@@ -61,7 +61,6 @@ RVTEST_SIGBASE( x13,signature_x13_1)
 		RVTEST_SIGUPD(x13,a4)
 		jal	\ADDRESS	// Test for execution, an instruction is placed at this address
 		nop
-		nop
  
 .endm
 

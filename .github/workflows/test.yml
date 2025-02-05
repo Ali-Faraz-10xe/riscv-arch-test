@@ -101,6 +101,7 @@ jobs:
           mkdir build
           cd build
           cmake .. -DARCH=RV${{ matrix.xlen }}
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
           make -j$(nproc)        
           mkdir -p $GITHUB_WORKSPACE/sail
           mv c_emulator/riscv_sim_RV${{ matrix.xlen }} $GITHUB_WORKSPACE/sail/riscv_sim_RV${{ matrix.xlen }}
